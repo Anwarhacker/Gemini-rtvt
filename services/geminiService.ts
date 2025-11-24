@@ -17,6 +17,71 @@ const fileToBase64 = (file: File): Promise<{ base64: string; mimeType: string }>
   });
 };
 
+// Helper to create a WAV header for raw PCM data
+const createWavHeader = (dataLength: number, sampleRate: number = 24000, numChannels: number = 1, bitsPerSample: number = 16) => {
+    const buffer = new ArrayBuffer(44);
+    const view = new DataView(buffer);
+    const writeString = (view: DataView, offset: number, string: string) => {
+        for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+    };
+
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + dataLength, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numChannels * (bitsPerSample / 8), true);
+    view.setUint16(32, numChannels * (bitsPerSample / 8), true);
+    view.setUint16(34, bitsPerSample, true);
+    writeString(view, 36, 'data');
+    view.setUint32(40, dataLength, true);
+
+    return buffer;
+};
+
+export const generateAudio = async (text: string): Promise<Blob> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash-preview-tts",
+            contents: { 
+                role: 'user', 
+                parts: [{ text }] 
+            },
+            config: {
+                responseModalities: ["AUDIO"], 
+                speechConfig: {
+                    voiceConfig: {
+                        prebuiltVoiceConfig: { voiceName: 'Puck' },
+                    },
+                },
+            },
+        });
+
+        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (!base64Audio) throw new Error("No audio data returned from API");
+
+        // Decode base64 string to byte array
+        const binaryString = atob(base64Audio);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        // Create WAV file (Header + PCM Data)
+        const wavHeader = createWavHeader(len);
+        const wavBlob = new Blob([wavHeader, bytes], { type: 'audio/wav' });
+        return wavBlob;
+
+    } catch (error) {
+        console.error("Audio Generation Error:", error);
+        throw new Error("Failed to generate audio. Please try again.");
+    }
+};
+
 export const processContent = async (
   text: string,
   imageFile: File | null,
@@ -88,6 +153,23 @@ export const processContent = async (
       was_corrected: false,
     };
   }
+};
+
+export const translateText = async (text: string, targetLangName: string): Promise<string> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                role: 'user',
+                parts: [{ text: `Translate the following text to ${targetLangName}. Output ONLY the translated text, no JSON, no preamble.\n\nText: "${text}"` }]
+            }
+        });
+        if (!response.text) throw new Error("Empty translation response");
+        return response.text.trim();
+    } catch (error) {
+        console.error("Simple Translation Error:", error);
+        throw new Error(`Failed to translate to ${targetLangName}.`);
+    }
 };
 
 export const explainGrammar = async (text: string): Promise<string> => {

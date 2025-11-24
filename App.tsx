@@ -4,12 +4,12 @@ import {
   MessageSquare, ArrowRightLeft, Download, Check, Copy, 
   Wand2, CheckCircle2, Star, Trash2, Bookmark, RefreshCw, 
   Gauge, SplitSquareVertical, Cpu, X, Languages, Menu,
-  BookOpen, GraduationCap, Loader2, Library, ChevronDown
+  BookOpen, GraduationCap, Loader2, Library, ChevronDown, Plus, Smartphone, ScanEye, AlertCircle
 } from 'lucide-react';
 
 import { LANGUAGES, MOCK_CONVERSATION } from './constants';
-import { Message, DictionaryData } from './types';
-import { processContent, explainGrammar, lookupDictionary } from './services/geminiService';
+import { Message, DictionaryData, TranslationItem, Language } from './types';
+import { processContent, explainGrammar, lookupDictionary, translateText, generateAudio } from './services/geminiService';
 import { AudioVisualizer } from './components/AudioVisualizer';
 import { VisionUploader } from './components/VisionUploader';
 import { LanguageModal } from './components/LanguageModal';
@@ -75,6 +75,56 @@ const MobileNav = ({ activeMode, setActiveMode, setViewState }: any) => {
   );
 };
 
+const ProcessingState = ({ mode, grammarCheck }: { mode: string; grammarCheck: boolean }) => {
+    let icon = <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />;
+    let text = "Processing...";
+    let colorClass = "text-indigo-400 border-indigo-500/20 bg-indigo-500/10";
+
+    if (mode === 'VISION') {
+        icon = <ScanEye className="w-4 h-4 animate-pulse text-purple-400" />;
+        text = "Analyzing Image & Context...";
+        colorClass = "text-purple-300 border-purple-500/20 bg-purple-500/10";
+    } else if (mode === 'DICTIONARY') {
+        icon = <BookOpen className="w-4 h-4 animate-bounce text-amber-400" />;
+        text = "Consulting Dictionary...";
+        colorClass = "text-amber-300 border-amber-500/20 bg-amber-500/10";
+    } else if (grammarCheck) {
+        icon = <Wand2 className="w-4 h-4 animate-pulse text-pink-400" />;
+        text = "Polishing Grammar & Translating...";
+        colorClass = "text-pink-300 border-pink-500/20 bg-pink-500/10";
+    } else {
+        icon = <Languages className="w-4 h-4 animate-pulse text-indigo-400" />;
+        text = "Translating...";
+    }
+
+    return (
+        <div className={`flex gap-3 max-w-3xl mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-300 mb-4`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border bg-slate-900 ${colorClass.split(' ')[1]}`}>
+                {icon}
+            </div>
+            <div className={`flex items-center gap-3 text-xs sm:text-sm px-4 py-3 rounded-2xl rounded-tl-none border ${colorClass}`}>
+                <span className="font-medium tracking-wide">{text}</span>
+            </div>
+        </div>
+    );
+};
+
+const ErrorDisplay = ({ message, onClose }: { message: string; onClose: () => void }) => {
+    return (
+        <div className="max-w-3xl mx-auto w-full mb-4 animate-in fade-in slide-in-from-bottom-2">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 text-red-300">
+                    <AlertCircle className="w-5 h-5 shrink-0" />
+                    <span className="text-sm font-medium">{message}</span>
+                </div>
+                <button onClick={onClose} className="p-1 hover:bg-red-500/10 rounded-full text-red-400 transition-colors">
+                    <X className="w-4 h-4" />
+                </button>
+            </div>
+        </div>
+    );
+};
+
 const GrammarModal = ({ isOpen, onClose, data }: { isOpen: boolean; onClose: () => void; data: { text: string; analysis: string } | null }) => {
     if (!isOpen || !data) return null;
 
@@ -129,7 +179,6 @@ const DictionaryCard = ({ data }: { data: DictionaryData }) => {
             </div>
 
             <div className="space-y-6">
-                {/* Word Breakdown (for sentences) */}
                 {data.breakdown && (
                     <div className="space-y-2">
                         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Breakdown</h4>
@@ -147,7 +196,6 @@ const DictionaryCard = ({ data }: { data: DictionaryData }) => {
                     </div>
                 )}
 
-                {/* Examples */}
                 {data.examples && data.examples.length > 0 && (
                     <div className="space-y-2">
                         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Examples</h4>
@@ -161,7 +209,6 @@ const DictionaryCard = ({ data }: { data: DictionaryData }) => {
                     </div>
                 )}
 
-                {/* Synonyms */}
                 {data.synonyms && data.synonyms.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                         {data.synonyms.map((syn, i) => (
@@ -197,15 +244,25 @@ export default function App() {
   const [inputInternal, setInputInternal] = useState('');
   const [sourceLang, setSourceLang] = useState(LANGUAGES[0]);
   const [targetLang, setTargetLang] = useState(LANGUAGES[1]);
+  
+  // For Split View Multi-Language
+  const [conversationLangs, setConversationLangs] = useState<Language[]>([LANGUAGES[1]]);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [activeSelector, setActiveSelector] = useState<'source' | 'target' | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [viewState, setViewState] = useState('CHAT');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   // UI State
   const [showLanguageControls, setShowLanguageControls] = useState(false);
+  const [addingTranslationId, setAddingTranslationId] = useState<number | null>(null);
+  const [addingConversationLang, setAddingConversationLang] = useState(false);
+
+  const [isAddingTranslation, setIsAddingTranslation] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   // Grammar Analysis State
   const [analyzingId, setAnalyzingId] = useState<number | null>(null);
@@ -216,6 +273,9 @@ export default function App() {
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
   const [copiedId, setCopiedId] = useState<number | null>(null); 
+  
+  // PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   // Refs
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -224,15 +284,23 @@ export default function App() {
   const speechTimeoutRef = useRef<any>(null); 
   const voiceBufferRef = useRef('');
 
-  // Persist saved messages to LocalStorage
+  // Sync targetLang with conversationLangs[0] initially
+  useEffect(() => {
+      setConversationLangs(prev => {
+          if (prev.length === 0) return [targetLang];
+          const newLangs = [...prev];
+          newLangs[0] = targetLang;
+          return newLangs;
+      });
+  }, [targetLang]);
+
   useEffect(() => {
     localStorage.setItem('rtvt_saved_messages', JSON.stringify(savedMessages));
   }, [savedMessages]);
 
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isProcessing]);
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isProcessing, error]);
 
   useEffect(() => {
-    // Auto-close language controls when listening starts
     if (isListening) setShowLanguageControls(false);
   }, [isListening]);
 
@@ -246,10 +314,18 @@ export default function App() {
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
     }
+    
+    const handleBeforeInstallPrompt = (e: any) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
     return () => {
       if (recognitionRef.current) recognitionRef.current.stop();
       if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
       window.speechSynthesis.cancel();
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
 
@@ -272,22 +348,114 @@ export default function App() {
     });
   };
 
-  const handleGrammarAnalysis = async (msg: Message) => {
+  const handleGrammarAnalysis = async (textToAnalyze: string, msgId: number) => {
+    const msg = messages.find(m => m.id === msgId);
+    if (!msg) return;
+
+    setError(null);
+
     if (msg.grammarAnalysis) {
-        setGrammarModalData({ text: msg.translation || msg.text, analysis: msg.grammarAnalysis });
+        setGrammarModalData({ text: textToAnalyze, analysis: msg.grammarAnalysis });
         return;
     }
 
-    setAnalyzingId(msg.id);
+    setAnalyzingId(msgId);
     try {
-        const textToAnalyze = msg.translation || msg.text;
         const analysis = await explainGrammar(textToAnalyze);
-        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, grammarAnalysis: analysis } : m));
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, grammarAnalysis: analysis } : m));
         setGrammarModalData({ text: textToAnalyze, analysis });
-    } catch (e) {
-        console.error("Analysis failed", e);
+    } catch (e: any) {
+        setError(e.message || "Grammar analysis failed.");
     } finally {
         setAnalyzingId(null);
+    }
+  };
+
+  const handleDownloadAudio = async (text: string, msgId: number) => {
+      setError(null);
+      setDownloadingId(msgId);
+      try {
+          const audioBlob = await generateAudio(text);
+          if (audioBlob) {
+              const url = URL.createObjectURL(audioBlob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `translation-${Date.now()}.wav`; 
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+          }
+      } catch (e: any) {
+          console.error("Download failed", e);
+          setError(e.message || "Failed to generate audio file.");
+      } finally {
+          setDownloadingId(null);
+      }
+  };
+
+  const handleAddTranslation = async (msgId: number, lang: any) => {
+      setAddingTranslationId(null);
+      setIsAddingTranslation(true);
+      setError(null);
+      
+      const msg = messages.find(m => m.id === msgId);
+      if (!msg || !msg.originalSource) {
+          setIsAddingTranslation(false);
+          return;
+      }
+
+      try {
+          const newTranslationText = await translateText(msg.originalSource, lang.name);
+          const newTranslationItem: TranslationItem = {
+              langCode: lang.code,
+              langName: lang.name,
+              flag: lang.flag,
+              text: newTranslationText
+          };
+
+          setMessages(prev => prev.map(m => {
+              if (m.id === msgId) {
+                  const currentTranslations = m.translations || [];
+                  if (currentTranslations.some(t => t.langCode === lang.code)) {
+                      return m;
+                  }
+                  return { ...m, translations: [...currentTranslations, newTranslationItem] };
+              }
+              return m;
+          }));
+
+      } catch (e: any) {
+          setError(e.message || "Failed to add translation.");
+      } finally {
+          setIsAddingTranslation(false);
+      }
+  };
+
+  const handleAddConversationLang = async (lang: Language) => {
+      setAddingConversationLang(false); 
+      
+      if (!conversationLangs.find(l => l.code === lang.code)) {
+          setConversationLangs(prev => [...prev, lang]);
+      }
+
+      const visible = getVisibleMessages();
+      const lastUserMsg = [...visible].reverse().find(m => m.speaker === 'User' || (m.speaker === 'System' && !m.speaker.includes('User')));
+      
+      if (lastUserMsg) {
+          const lastSystemMsg = [...visible].reverse().find(m => m.speaker.includes('System (to User)'));
+          if (lastSystemMsg && lastSystemMsg.originalSource) {
+             handleAddTranslation(lastSystemMsg.id, lang);
+          }
+      }
+  };
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+        setDeferredPrompt(null);
     }
   };
 
@@ -324,7 +492,10 @@ export default function App() {
   };
 
   const toggleListening = (langOverride: string | null = null) => {
-    if (!recognitionRef.current) { alert("Speech recognition is not supported."); return; }
+    if (!recognitionRef.current) { 
+        setError("Speech recognition is not supported in this browser."); 
+        return; 
+    }
     
     if (isListening) {
       recognitionRef.current.stop();
@@ -343,6 +514,7 @@ export default function App() {
       setIsSpeaking(false);
       voiceBufferRef.current = '';
       setInputInternal('');
+      setError(null);
       
       try {
         const langToUse = langOverride || sourceLang.code;
@@ -393,6 +565,7 @@ export default function App() {
           if (event.error === 'not-allowed') {
               setIsListening(false); 
               setListeningLang(null);
+              setError("Microphone access denied. Please allow permissions.");
           }
       };
     }
@@ -409,6 +582,7 @@ export default function App() {
     }
 
     setIsProcessing(true);
+    setError(null);
     
     const userMsgId = Date.now();
     const currentMode = activeMode;
@@ -428,7 +602,6 @@ export default function App() {
 
     try {
         if (currentMode === 'DICTIONARY') {
-            // Dictionary Logic
             const dictData = await lookupDictionary(textToSend, targetLang.name);
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
@@ -440,20 +613,45 @@ export default function App() {
                 dictionaryData: dictData
             }]);
         } else {
-            // Translation/Vision Logic
             const outputLang = isReverseTranslate ? sourceLang : targetLang;
             const result = await processContent(textToSend, hasImage ? selectedImage : null, outputLang.name, grammarCorrection && !isReverseTranslate);
 
             if (hasImage) setSelectedImage(null);
             
-            // Update original user message with corrections if available
             setMessages(prev => prev.map(m => m.id === userMsgId ? { 
                 ...m, 
                 correctedText: (result.was_corrected && !hasImage && !isReverseTranslate) ? result.corrected : undefined,
                 translation: result.translation 
             } : m));
 
-            // Add AI response
+            const translations: TranslationItem[] = [{
+                langCode: outputLang.code,
+                langName: outputLang.name,
+                flag: outputLang.flag,
+                text: result.translation
+            }];
+
+            if (currentMode === 'CONVERSATION' && !isReverseTranslate) {
+                const otherLangs = conversationLangs.filter(l => l.code !== outputLang.code);
+                const extraTranslations = await Promise.all(otherLangs.map(async (l) => {
+                    try {
+                        const txt = await translateText(result.original || textToSend, l.name);
+                        return {
+                            langCode: l.code,
+                            langName: l.name,
+                            flag: l.flag,
+                            text: txt
+                        };
+                    } catch (e) {
+                        return null;
+                    }
+                }));
+                
+                extraTranslations.forEach(t => {
+                    if (t) translations.push(t);
+                });
+            }
+
             const aiMsg: Message = {
                 id: Date.now() + 1,
                 speaker: isReverseTranslate ? 'System (to User)' : 'System',
@@ -461,7 +659,9 @@ export default function App() {
                 lang: outputLang.code,
                 isTranslation: true,
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                mode: currentMode
+                mode: currentMode,
+                originalSource: result.original || textToSend,
+                translations: translations
             };
             setMessages(prev => [...prev, aiMsg]);
 
@@ -475,8 +675,9 @@ export default function App() {
                 try { recognitionRef.current.start(); } catch(e) {}
             }
         }
-    } catch (error) {
-       console.error("Flow Error:", error);
+    } catch (e: any) {
+       console.error("Flow Error:", e);
+       setError(e.message || "An unexpected error occurred. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -491,7 +692,6 @@ export default function App() {
     if (activeMode === 'DICTIONARY') {
         return messages.filter(m => m.mode === 'DICTIONARY');
     }
-    // For Translation (VOICE), Split, Sign - show messages that are NOT Vision or Dictionary
     return messages.filter(m => m.mode !== 'VISION' && m.mode !== 'DICTIONARY');
   };
 
@@ -503,57 +703,91 @@ export default function App() {
     }
 
     const isSaved = savedMessages.some(m => m.id === msg.id);
-    const isRightAlign = msg.speaker === 'User';
-    
+    const isSystem = msg.speaker === 'System' || msg.speaker.includes('System');
+    const isRightAlign = !isSystem;
+
+    if (!isSystem) {
+        return (
+            <div className={`flex gap-2 sm:gap-4 w-full flex-row-reverse`}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-lg ring-2 ring-offset-2 ring-offset-slate-950 bg-indigo-500 ring-indigo-500/50">{msg.speaker[0]}</div>
+                <div className="flex flex-col items-end max-w-[85%] sm:max-w-[75%]">
+                    <div className="flex items-center gap-2 mb-1">
+                        {msg.lang && <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-slate-800/50 text-slate-400 border border-slate-700/50 uppercase tracking-wider">{msg.lang.split('-')[0]}</span>}
+                    </div>
+                    <div className="px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-lg backdrop-blur-sm break-words w-full relative group transition-all duration-300 bg-indigo-600/90 text-white rounded-tr-none border border-indigo-500/50">
+                        {msg.image && (
+                            <div className="mb-3 rounded-lg overflow-hidden border border-white/10 shadow-inner bg-black/20">
+                                <img src={msg.image} alt="User Upload" className="w-full h-auto" />
+                            </div>
+                        )}
+                        {msg.correctedText && (
+                            <div className="mb-2 pb-2 border-b border-white/20">
+                                <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider opacity-70 mb-1"><X className="w-3 h-3" /> Original</div>
+                                <span className="line-through opacity-60 block decoration-red-400/50">{msg.text}</span>
+                                <div className="flex items-center gap-1 text-[10px] text-emerald-300 uppercase tracking-wider mt-2 font-bold"><CheckCircle2 className="w-3 h-3" /> Corrected</div>
+                            </div>
+                        )}
+                        <div className="whitespace-pre-wrap">{msg.correctedText ? msg.correctedText : msg.text}</div>
+                    </div>
+                    <div className="flex gap-2 mt-1 px-1 justify-end">
+                        <button onClick={() => speakText(msg.correctedText || msg.text, msg.lang)} className="text-slate-500 hover:text-indigo-400 p-1 transition-colors" title="Play TTS"><Volume2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleDownloadAudio(msg.correctedText || msg.text, msg.id)} className="text-slate-500 hover:text-emerald-400 p-1 transition-colors" title="Download Audio">
+                            {downloadingId === msg.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                        </button>
+                        <button onClick={() => handleDelete(msg.id)} className="text-slate-500 hover:text-red-400 p-1 transition-colors" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-      <div className={`flex gap-2 sm:gap-4 w-full ${isRightAlign ? 'flex-row-reverse' : 'flex-row'}`}>
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-lg ring-2 ring-offset-2 ring-offset-slate-950 ${isRightAlign ? 'bg-indigo-500 ring-indigo-500/50' : 'bg-purple-500 ring-purple-500/50'}`}>{msg.speaker[0]}</div>
+      <div className="flex gap-2 sm:gap-4 w-full flex-row">
+        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-lg ring-2 ring-offset-2 ring-offset-slate-950 bg-purple-500 ring-purple-500/50">{msg.speaker[0]}</div>
         
-        <div className={`flex flex-col ${isRightAlign ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-[75%]`}>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-400">{msg.speaker}</span>
-            {msg.lang && <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-slate-800/50 text-slate-400 border border-slate-700/50 uppercase tracking-wider">{msg.lang.split('-')[0]}</span>}
-          </div>
-          
-          <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-lg backdrop-blur-sm break-words w-full relative group transition-all duration-300 ${isRightAlign ? 'bg-indigo-600/90 text-white rounded-tr-none border border-indigo-500/50' : 'bg-slate-800/90 text-slate-200 border border-slate-700/50 rounded-tl-none'}`}>
-            
-            {msg.image && (
-                <div className="mb-3 rounded-lg overflow-hidden border border-white/10 shadow-inner bg-black/20">
-                    <img src={msg.image} alt="User Upload" className="w-full h-auto" />
-                </div>
-            )}
+        <div className="flex flex-col items-start w-full overflow-hidden">
+           <div className="flex items-stretch gap-3 overflow-x-auto pb-4 pt-1 w-full custom-scrollbar pr-4">
+                {(msg.translations || [{ langCode: msg.lang, langName: 'Translation', flag: '🌐', text: msg.text }]).map((trans, idx) => (
+                     <div key={idx} className="min-w-[260px] sm:min-w-[300px] max-w-[300px] bg-slate-800/90 rounded-xl border border-slate-700/50 p-4 flex flex-col shadow-lg relative group shrink-0">
+                         <div className="flex items-center justify-between mb-3 border-b border-slate-700/50 pb-2">
+                             <div className="flex items-center gap-2">
+                                 <span className="text-xl">{trans.flag}</span>
+                                 <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">{trans.langName}</span>
+                             </div>
+                             <button onClick={() => speakText(trans.text, trans.langCode)} className="p-1.5 rounded-full hover:bg-slate-700 text-slate-400 hover:text-indigo-400 transition-colors">
+                                 <Volume2 className="w-3.5 h-3.5" />
+                             </button>
+                         </div>
+                         <div className="text-sm text-slate-100 leading-relaxed whitespace-pre-wrap flex-1">
+                             {trans.text}
+                         </div>
+                         <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-slate-700/30">
+                             <button onClick={() => handleGrammarAnalysis(trans.text, msg.id)} className="p-1.5 text-slate-500 hover:text-blue-400 transition-colors" title="Analyze">
+                                 {analyzingId === msg.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BookOpen className="w-3.5 h-3.5" />}
+                             </button>
+                             <button onClick={() => handleCopy(trans.text, msg.id)} className="p-1.5 text-slate-500 hover:text-emerald-400 transition-colors" title="Copy">
+                                {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                             </button>
+                             <button onClick={() => handleDownloadAudio(trans.text, msg.id)} className="p-1.5 text-slate-500 hover:text-purple-400 transition-colors" title="Download Audio">
+                                {downloadingId === msg.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                             </button>
+                         </div>
+                     </div>
+                ))}
 
-            {msg.correctedText && (
-                <div className="mb-2 pb-2 border-b border-white/20">
-                    <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider opacity-70 mb-1"><X className="w-3 h-3" /> Original</div>
-                    <span className="line-through opacity-60 block decoration-red-400/50">{msg.text}</span>
-                    <div className="flex items-center gap-1 text-[10px] text-emerald-300 uppercase tracking-wider mt-2 font-bold"><CheckCircle2 className="w-3 h-3" /> Corrected</div>
-                </div>
-            )}
-
-            <div className="whitespace-pre-wrap">{msg.correctedText ? msg.correctedText : msg.text}</div>
-
-            {msg.translation && (
-              <div className="mt-3 pt-3 border-t border-white/10 text-emerald-300 not-italic flex gap-2 font-medium">
-                <ArrowRightLeft className="w-3 h-3 mt-1 flex-shrink-0 opacity-70" />
-                <span className="whitespace-pre-wrap">{msg.translation}</span>
-              </div>
-            )}
-          </div>
-          
-          <div className={`flex gap-2 mt-1 px-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity ${isRightAlign ? 'justify-end' : 'justify-start'}`}>
-            <button onClick={() => speakText(msg.translation || msg.text, msg.lang)} className="text-slate-500 hover:text-indigo-400 p-1 transition-colors" title="Play TTS"><Volume2 className="w-3.5 h-3.5" /></button>
-            
-            <button onClick={() => handleGrammarAnalysis(msg)} className="text-slate-500 hover:text-blue-400 p-1 transition-colors relative" title="Analyze Grammar">
-                {analyzingId === msg.id ? <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" /> : <BookOpen className="w-3.5 h-3.5" />}
-            </button>
-            
-            <button onClick={() => handleCopy(msg.translation || msg.text, msg.id)} className="text-slate-500 hover:text-emerald-400 p-1 transition-colors" title="Copy">
-                {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            </button>
-            <button onClick={() => handleToggleSave(msg)} className={`p-1 transition-colors ${isSaved ? 'text-yellow-400' : 'text-slate-500 hover:text-yellow-400'}`} title="Save"><Star className="w-3.5 h-3.5" fill={isSaved ? "currentColor" : "none"} /></button>
-            <button onClick={() => handleDelete(msg.id)} className="text-slate-500 hover:text-red-400 p-1 transition-colors" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-          </div>
+                <button 
+                    onClick={() => setAddingTranslationId(msg.id)}
+                    className="min-w-[60px] w-[60px] bg-slate-900/50 rounded-xl border-2 border-dashed border-slate-800 flex items-center justify-center hover:bg-slate-800 hover:border-indigo-500/50 transition-all group shrink-0"
+                    title="Add another language"
+                >
+                    <Plus className="w-6 h-6 text-slate-600 group-hover:text-indigo-400 transition-colors" />
+                </button>
+           </div>
+           
+           <div className="flex gap-2 mt-1 px-1 opacity-50 hover:opacity-100 transition-opacity">
+              <button onClick={() => handleToggleSave(msg)} className={`p-1 transition-colors ${isSaved ? 'text-yellow-400' : 'text-slate-500 hover:text-yellow-400'}`} title="Save to Favorites"><Star className="w-3.5 h-3.5" fill={isSaved ? "currentColor" : "none"} /></button>
+              <button onClick={() => handleDelete(msg.id)} className="text-slate-500 hover:text-red-400 p-1 transition-colors" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+           </div>
         </div>
       </div>
     );
@@ -567,33 +801,40 @@ export default function App() {
       return (
           <div className="flex flex-col h-[calc(100vh-140px)] md:h-full bg-black rounded-b-3xl md:rounded-none overflow-hidden">
               <div className="flex-1 bg-slate-900 flex flex-col items-center justify-center relative border-b border-slate-800 p-4 transform rotate-180">
-                  <button 
-                      onClick={() => setActiveSelector('target')}
-                      className="absolute bottom-4 left-4 flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity z-10 p-2 rounded-lg hover:bg-slate-800"
-                  >
-                      <span className="text-2xl sm:text-3xl">{targetLang.flag}</span>
-                      <div className="flex flex-col items-start">
-                          <span className="text-lg sm:text-xl text-slate-400">{targetLang.name}</span>
-                          <span className="text-[10px] text-indigo-400 flex items-center gap-1">Change <ChevronDown className="w-3 h-3" /></span>
-                      </div>
-                  </button>
-                  
-                  <div className="text-center space-y-4 max-w-lg w-full px-4">
-                      {lastUserMsg?.translation ? (
-                          <p className="text-2xl sm:text-3xl font-medium text-white leading-relaxed animate-in fade-in zoom-in duration-300">
-                              {lastUserMsg.translation}
-                          </p>
+                  <div className="w-full h-full flex flex-col justify-center items-center">
+                      {lastGuestMsg ? (
+                          <div className="w-full flex items-center justify-start overflow-x-auto px-8 pb-4 gap-6 snap-x custom-scrollbar h-full">
+                              {(lastGuestMsg.translations || [{ langCode: lastGuestMsg.lang, langName: 'Translation', flag: '🌐', text: lastGuestMsg.text }]).map((trans, idx) => (
+                                  <div key={idx} className="snap-center shrink-0 min-w-[80%] max-w-[90%] flex flex-col items-center justify-center gap-4 p-6">
+                                      <div className="flex items-center gap-3 opacity-70">
+                                          <span className="text-4xl">{trans.flag}</span>
+                                          <span className="text-xl text-slate-400 font-medium">{trans.langName}</span>
+                                      </div>
+                                      <p className="text-3xl sm:text-4xl font-medium text-white leading-relaxed text-center break-words w-full">
+                                          {trans.text}
+                                      </p>
+                                  </div>
+                              ))}
+                              <button 
+                                  onClick={() => setAddingConversationLang(true)}
+                                  className="snap-center shrink-0 w-24 h-24 rounded-full border-2 border-dashed border-slate-700 flex flex-col items-center justify-center gap-2 text-slate-500 hover:text-indigo-400 hover:border-indigo-500/50 transition-all"
+                              >
+                                  <Plus className="w-8 h-8" />
+                                  <span className="text-xs font-medium rotate-180">Add Lang</span>
+                              </button>
+                          </div>
                       ) : (
-                          <p className="text-lg sm:text-xl text-slate-600">Waiting for input...</p>
+                          <div className="text-center space-y-4 max-w-lg px-4">
+                              <p className="text-lg sm:text-xl text-slate-600">Waiting for input...</p>
+                          </div>
                       )}
-                      {lastUserMsg?.text && <p className="text-xs sm:text-sm text-slate-500 line-clamp-2">{lastUserMsg.text}</p>}
                   </div>
 
                   <button 
-                    onClick={() => toggleListening(targetLang.code)}
-                    className={`absolute top-1/2 -translate-y-1/2 right-4 w-16 h-16 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-all shadow-2xl ${isListening && listeningLang === targetLang.code ? 'bg-red-500 animate-pulse scale-110 shadow-red-500/50' : 'bg-slate-800 hover:bg-slate-700 border border-slate-600'}`}
+                    onClick={() => toggleListening(conversationLangs[0].code)}
+                    className={`absolute top-4 right-4 w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-2xl z-20 ${isListening && listeningLang === conversationLangs[0].code ? 'bg-red-500 animate-pulse scale-110 shadow-red-500/50' : 'bg-slate-800 hover:bg-slate-700 border border-slate-600'}`}
                   >
-                      {isListening && listeningLang === targetLang.code ? <MicOff className="w-8 h-8 sm:w-10 sm:h-10 text-white" /> : <Mic className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-400" />}
+                      {isListening && listeningLang === conversationLangs[0].code ? <MicOff className="w-8 h-8 text-white" /> : <Mic className="w-8 h-8 text-indigo-400" />}
                   </button>
               </div>
 
@@ -617,7 +858,7 @@ export default function App() {
                       ) : (
                           <p className="text-lg sm:text-xl text-slate-600">Tap mic to speak...</p>
                       )}
-                      {lastGuestMsg?.text && <p className="text-xs sm:text-sm text-slate-500 line-clamp-2">{lastGuestMsg.text}</p>}
+                      {lastUserMsg?.text && <p className="text-xs sm:text-sm text-slate-500 line-clamp-2">{lastUserMsg.text}</p>}
                   </div>
 
                   <button 
@@ -633,7 +874,29 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500/30 overflow-hidden">
-      <LanguageModal isOpen={activeSelector !== null} onClose={() => setActiveSelector(null)} title={activeSelector === 'source' ? "Select Input Language" : "Select Output Language"} selectedLang={activeSelector === 'source' ? sourceLang : targetLang} onSelect={(lang) => activeSelector === 'source' ? setSourceLang(lang) : setTargetLang(lang)} />
+      <LanguageModal isOpen={activeSelector !== null || addingTranslationId !== null || addingConversationLang} 
+        onClose={() => { setActiveSelector(null); setAddingTranslationId(null); setAddingConversationLang(false); }} 
+        title={
+            addingConversationLang ? "Add Language to Split View" :
+            addingTranslationId ? "Add Translation Language" : 
+            activeSelector === 'source' ? "Select Input Language" : "Select Output Language"
+        } 
+        selectedLang={
+            addingConversationLang || addingTranslationId ? targetLang : 
+            activeSelector === 'source' ? sourceLang : targetLang
+        } 
+        onSelect={(lang) => {
+            if (addingConversationLang) {
+                handleAddConversationLang(lang);
+            } else if (addingTranslationId) {
+                handleAddTranslation(addingTranslationId, lang);
+            } else if (activeSelector === 'source') {
+                setSourceLang(lang);
+            } else {
+                setTargetLang(lang);
+            }
+        }} 
+      />
       
       <GrammarModal 
         isOpen={grammarModalData !== null} 
@@ -693,6 +956,12 @@ export default function App() {
                 <button className="w-full flex items-center justify-center gap-2 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm rounded-lg transition-colors border border-slate-700">
                     <Download className="w-4 h-4" /> Export Transcript
                 </button>
+                
+                {deferredPrompt && (
+                     <button onClick={handleInstallApp} className="w-full flex items-center justify-center gap-2 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm rounded-lg transition-all shadow-lg shadow-indigo-500/20 font-medium border border-indigo-500/50">
+                        <Smartphone className="w-4 h-4" /> Install RTVT App
+                     </button>
+                )}
             </div>
         </div>
       </SettingsDrawer>

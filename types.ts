@@ -4,6 +4,13 @@ export interface Language {
   flag: string;
 }
 
+export interface TranslationItem {
+  langCode: string;
+  langName: string;
+  flag: string;
+  text: string;
+}
+
 export interface DictionaryData {
   type: 'word' | 'sentence';
   source: string;
@@ -25,6 +32,8 @@ export interface Message {
   correctedText?: string | null;
   image?: string | null;
   translation?: string;
+  translations?: TranslationItem[];
+  originalSource?: string;
   grammarAnalysis?: string;
   mode?: string;
   dictionaryData?: DictionaryData;
