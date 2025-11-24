@@ -1,0 +1,8 @@
+{
+  "name": "RTVT Ultimate",
+  "description": "Real-time Voice Translation with Vision and Context-Aware Neural Engine",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
