@@ -68,7 +68,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         <div className="flex flex-col items-end max-w-[85%] sm:max-w-[75%]">
           <div className="flex items-center gap-2 mb-1">
             {msg.lang && (
-              <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-slate-800/50 text-slate-400 border border-slate-700/50 uppercase tracking-wider">
+              <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 border border-slate-400 uppercase tracking-wider">
                 {msg.lang.split("-")[0]}
               </span>
             )}
@@ -152,29 +152,29 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           ).map((trans, idx) => (
             <div
               key={idx}
-              className="min-w-[260px] sm:min-w-[300px] max-w-[300px] bg-slate-800/90 rounded-xl border border-slate-700/50 p-4 flex flex-col shadow-lg relative group shrink-0"
+              className="min-w-[260px] sm:min-w-[300px] max-w-[300px] bg-white rounded-xl border border-slate-300 p-4 flex flex-col shadow-lg relative group shrink-0"
             >
-              <div className="flex items-center justify-between mb-3 border-b border-slate-700/50 pb-2">
+              <div className="flex items-center justify-between mb-3 border-b border-slate-300 pb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{trans.flag}</span>
-                  <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                     {trans.langName}
                   </span>
                 </div>
                 <button
                   onClick={() => speakText(trans.text, trans.langCode)}
-                  className="p-1.5 rounded-full hover:bg-slate-700 text-slate-400 hover:text-indigo-400 transition-colors"
+                  className="p-1.5 rounded-full hover:bg-slate-200 text-slate-600 hover:text-[#3182CE] transition-colors"
                 >
                   <Volume2 className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <div className="text-sm text-slate-100 leading-relaxed whitespace-pre-wrap flex-1">
+              <div className="text-sm text-slate-900 leading-relaxed whitespace-pre-wrap flex-1">
                 {trans.text}
               </div>
-              <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-slate-700/30">
+              <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-slate-300/50">
                 <button
                   onClick={() => handleGrammarAnalysis(trans.text, msg.id)}
-                  className="p-1.5 text-slate-500 hover:text-blue-400 transition-colors"
+                  className="p-1.5 text-slate-600 hover:text-[#3182CE] transition-colors"
                   title="Analyze"
                 >
                   {analyzingId === msg.id ? (
@@ -185,7 +185,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 </button>
                 <button
                   onClick={() => handleCopy(trans.text, msg.id)}
-                  className="p-1.5 text-slate-500 hover:text-emerald-400 transition-colors"
+                  className="p-1.5 text-slate-600 hover:text-emerald-400 transition-colors"
                   title="Copy"
                 >
                   {copiedId === msg.id ? (
@@ -196,7 +196,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 </button>
                 <button
                   onClick={() => handleDownloadAudio(trans.text, msg.id)}
-                  className="p-1.5 text-slate-500 hover:text-purple-400 transition-colors"
+                  className="p-1.5 text-slate-600 hover:text-[#3182CE] transition-colors"
                   title="Download Audio"
                 >
                   {downloadingId === msg.id ? (
@@ -211,10 +211,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
           <button
             onClick={() => setAddingTranslationId(msg.id)}
-            className="min-w-[60px] w-[60px] bg-slate-900/50 rounded-xl border-2 border-dashed border-slate-800 flex items-center justify-center hover:bg-slate-800 hover:border-indigo-500/50 transition-all group shrink-0"
+            className="min-w-[60px] w-[60px] bg-slate-100 rounded-xl border-2 border-dashed border-slate-400 flex items-center justify-center hover:bg-slate-200 hover:border-[#3182CE]/50 transition-all group shrink-0"
             title="Add another language"
           >
-            <Plus className="w-6 h-6 text-slate-600 group-hover:text-indigo-400 transition-colors" />
+            <Plus className="w-6 h-6 text-slate-600 group-hover:text-[#3182CE] transition-colors" />
           </button>
         </div>
 

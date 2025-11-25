@@ -700,7 +700,7 @@ export default function App() {
   const visibleMessages = getVisibleMessages();
 
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500/30 overflow-hidden">
+    <div className="flex flex-col h-screen bg-white text-slate-900 font-sans selection:bg-[#3182CE]/30 overflow-hidden">
       <LanguageModal
         isOpen={
           activeSelector !== null ||
@@ -756,13 +756,13 @@ export default function App() {
             <h3 className="text-xs font-semibold text-slate-500 uppercase flex items-center gap-2">
               <Cpu className="w-3 h-3" /> Config
             </h3>
-            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 space-y-3">
+            <div className="bg-white p-3 rounded-lg border border-slate-300 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-300">Auto-Grammar Fix</span>
+                <span className="text-sm text-slate-700">Auto-Grammar Fix</span>
                 <button
                   onClick={() => setGrammarCorrection(!grammarCorrection)}
                   className={`w-9 h-5 rounded-full relative transition-colors ${
-                    grammarCorrection ? "bg-indigo-500" : "bg-slate-600"
+                    grammarCorrection ? "bg-[#3182CE]" : "bg-slate-300"
                   }`}
                 >
                   <div
@@ -773,11 +773,11 @@ export default function App() {
                 </button>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-300">Auto-Playback</span>
+                <span className="text-sm text-slate-700">Auto-Playback</span>
                 <button
                   onClick={() => setAutoSpeak(!autoSpeak)}
                   className={`w-9 h-5 rounded-full relative transition-colors ${
-                    autoSpeak ? "bg-indigo-500" : "bg-slate-600"
+                    autoSpeak ? "bg-[#3182CE]" : "bg-slate-300"
                   }`}
                 >
                   <div
@@ -794,10 +794,10 @@ export default function App() {
             <h3 className="text-xs font-semibold text-slate-500 uppercase flex items-center gap-2">
               <Gauge className="w-3 h-3" /> Audio Settings
             </h3>
-            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 space-y-3">
+            <div className="bg-white p-3 rounded-lg border border-slate-300 space-y-3">
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-300">
+                  <span className="text-sm text-slate-700">
                     TTS Speed: {ttsSpeed}x
                   </span>
                 </div>
@@ -808,7 +808,7 @@ export default function App() {
                   step="0.25"
                   value={ttsSpeed}
                   onChange={(e) => setTtsSpeed(parseFloat(e.target.value))}
-                  className="w-full accent-indigo-500 bg-slate-700 rounded-lg appearance-none h-2 cursor-pointer"
+                  className="w-full accent-[#3182CE] bg-slate-200 rounded-lg appearance-none h-2 cursor-pointer"
                 />
                 <div className="flex justify-between text-xs text-slate-500">
                   <span>Slow</span>
@@ -819,16 +819,16 @@ export default function App() {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-800 space-y-2">
+          <div className="pt-4 border-t border-slate-300 space-y-2">
             <button
               onClick={clearHistory}
-              className="w-full flex items-center justify-center gap-2 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-300 text-sm rounded-lg transition-colors border border-red-900/30"
+              className="w-full flex items-center justify-center gap-2 py-2 bg-red-100 hover:bg-red-200 text-red-600 text-sm rounded-lg transition-colors border border-red-300"
             >
               <Trash2 className="w-4 h-4" /> Clear History
             </button>
             <button
               onClick={exportTranscript}
-              className="w-full flex items-center justify-center gap-2 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm rounded-lg transition-colors border border-slate-700"
+              className="w-full flex items-center justify-center gap-2 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm rounded-lg transition-colors border border-slate-400"
             >
               <Download className="w-4 h-4" /> Export Transcript
             </button>
@@ -843,40 +843,42 @@ export default function App() {
         </div>
       </SettingsDrawer>
 
-      <header className="flex items-center justify-between px-4 sm:px-6 py-3 bg-slate-900/95 backdrop-blur border-b border-slate-800 shrink-0 z-30 sticky top-0">
+      <header className="flex items-center justify-between px-4 sm:px-6 py-3 bg-[#3182CE] backdrop-blur border-b border-slate-300 shrink-0 z-30 sticky top-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 transform rotate-3">
-            <Activity className="text-white w-5 h-5 sm:w-6 sm:h-6" />
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-[#3182CE]/20 transform rotate-3">
+            <Activity className="text-[#3182CE] w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h1 className="font-bold text-base sm:text-lg tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+            <h1 className="font-bold text-base sm:text-lg tracking-tight leading-none text-white">
               RTVT{" "}
-              <span className="text-[10px] sm:text-xs bg-indigo-500/20 text-indigo-300 px-1.5 rounded ml-1 align-top border border-indigo-500/20">
+              <span className="text-[10px] sm:text-xs bg-white text-[#3182CE] px-1.5 rounded ml-1 align-top border border-white/20">
                 ULTRA
               </span>
             </h1>
-            {/* <p className="text-[10px] sm:text-xs text-slate-500 font-medium">Context-Aware Neural Engine</p> */}
+            <p className="text-[10px] sm:text-xs text-white font-medium">
+              Context-Aware Neural Engine
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
-          <div className="hidden md:flex items-center gap-4 px-4 py-1.5 bg-slate-800/50 rounded-full border border-slate-700/50 shadow-inner">
-            <div className="flex items-center gap-2 text-[10px] font-mono text-emerald-400">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]"></div>
+          <div className="hidden md:flex items-center gap-4 px-4 py-1.5 bg-white/50 rounded-full border border-slate-300/50 shadow-inner">
+            <div className="flex items-center gap-2 text-[10px] font-mono text-green-600">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
               ONLINE
             </div>
           </div>
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="p-2 hover:bg-slate-800 rounded-full transition-colors relative"
+            className="p-2 hover:bg-white/20 rounded-full transition-colors relative"
           >
-            <Settings className="w-5 h-5 text-slate-400 hover:text-white transition-colors" />
+            <Settings className="w-5 h-5 text-white/70 hover:text-white transition-colors" />
           </button>
         </div>
       </header>
 
       <div className="flex-1 flex overflow-hidden relative">
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex w-20 lg:w-64 flex-shrink-0 border-r border-slate-800 bg-slate-900/50 flex-col backdrop-blur-sm">
+        <aside className="hidden md:flex w-20 lg:w-64 flex-shrink-0 border-r border-slate-300 bg-white/50 flex-col backdrop-blur-sm">
           <nav className="flex-1 p-3 space-y-2">
             {[
               { id: "VOICE", icon: Mic, label: "Translate" },
@@ -896,8 +898,8 @@ export default function App() {
                 }}
                 className={`w-full flex items-center justify-center lg:justify-start gap-3 p-3 rounded-xl transition-all duration-200 group ${
                   activeMode === mode.id && viewState === "CHAT"
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 ring-1 ring-indigo-400/30"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                    ? "bg-[#3182CE] text-white shadow-lg shadow-[#3182CE]/30 ring-1 ring-[#3182CE]/30"
+                    : "text-slate-600 hover:bg-slate-200 hover:text-slate-900"
                 }`}
                 title={mode.label}
               >
@@ -913,13 +915,13 @@ export default function App() {
                 </span>
               </button>
             ))}
-            <div className="pt-4 border-t border-slate-800 mt-2 space-y-2">
+            <div className="pt-4 border-t border-slate-300 mt-2 space-y-2">
               <button
                 onClick={() => setViewState("SAVED")}
                 className={`w-full flex items-center justify-center lg:justify-start gap-3 p-3 rounded-xl transition-all ${
                   viewState === "SAVED"
-                    ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-                    : "text-slate-400 hover:bg-slate-800"
+                    ? "bg-yellow-200 text-yellow-700 border border-yellow-300"
+                    : "text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 <Bookmark className="w-5 h-5 shrink-0" />
@@ -928,10 +930,10 @@ export default function App() {
                 </span>
               </button>
 
-              <div className="pt-2 border-t border-slate-800 space-y-2">
+              <div className="pt-2 border-t border-slate-300 space-y-2">
                 <button
                   onClick={clearHistory}
-                  className="w-full flex items-center justify-center lg:justify-start gap-3 p-3 rounded-xl bg-red-900/20 hover:bg-red-900/40 text-red-300 transition-colors border border-red-900/30"
+                  className="w-full flex items-center justify-center lg:justify-start gap-3 p-3 rounded-xl bg-red-100 hover:bg-red-200 text-red-600 transition-colors border border-red-300"
                 >
                   <Trash2 className="w-5 h-5 shrink-0" />
                   <span className="hidden lg:block font-medium text-sm truncate">
@@ -940,7 +942,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={exportTranscript}
-                  className="w-full flex items-center justify-center lg:justify-start gap-3 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700"
+                  className="w-full flex items-center justify-center lg:justify-start gap-3 p-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 transition-colors border border-slate-400"
                 >
                   <Download className="w-5 h-5 shrink-0" />
                   <span className="hidden lg:block font-medium text-sm truncate">
@@ -950,9 +952,9 @@ export default function App() {
 
                 <button
                   onClick={handleInstallApp}
-                  className="w-full flex items-center justify-center lg:justify-start gap-3 p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white transition-all shadow-lg shadow-indigo-500/20 font-medium border border-indigo-500/50"
+                  className="w-full flex items-center justify-center lg:justify-start gap-3 p-3 rounded-xl bg-gradient-to-r from-[#3182CE] to-[#2573A7] hover:from-[#2C7AB0] hover:to-[#216A94] text-white transition-all shadow-lg shadow-[#3182CE]/20 font-medium border border-[#3182CE]/50"
                 >
-                  <Smartphone className="w-5 h-5 shrink-0" />
+                  <Smartphone className="w-4 h-4" />
                   <span className="hidden lg:block font-medium text-sm truncate">
                     Install RTVT App
                   </span>
@@ -984,9 +986,9 @@ export default function App() {
                 <>
                   {/* Vision Mode Layout - Separate Tab */}
                   {activeMode === "VISION" && (
-                    <div className="flex-1 flex flex-col h-full bg-slate-950">
+                    <div className="flex-1 flex flex-col h-full bg-white">
                       {/* Static Header / Uploader for Vision */}
-                      <div className="w-full bg-slate-900/50 border-b border-slate-800/50 z-10 p-4">
+                      <div className="w-full bg-slate-100 border-b border-slate-300 z-10 p-4">
                         <VisionUploader
                           onImageSelect={setSelectedImage}
                           selectedImage={selectedImage}
@@ -997,7 +999,7 @@ export default function App() {
                       {/* Messages List - Specific to Vision context */}
                       <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-6 sm:space-y-8 scroll-smooth pb-32 sm:pb-40">
                         <div className="text-center py-4">
-                          <span className="text-[10px] sm:text-xs font-mono text-slate-500 bg-slate-900/80 border border-slate-800 px-3 py-1 rounded-full shadow-sm">
+                          <span className="text-[10px] sm:text-xs font-mono text-slate-700 bg-white border border-slate-300 px-3 py-1 rounded-full shadow-sm">
                             Vision Mode Active
                           </span>
                         </div>
@@ -1024,11 +1026,11 @@ export default function App() {
 
                         {isProcessing && (
                           <div className="flex gap-4 max-w-3xl mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
-                              <Activity className="w-4 h-4 text-indigo-400 animate-pulse" />
+                            <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-400 flex items-center justify-center shrink-0">
+                              <Activity className="w-4 h-4 text-[#3182CE] animate-pulse" />
                             </div>
-                            <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-400 bg-slate-900/50 px-4 py-3 rounded-2xl rounded-tl-none border border-slate-800">
-                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                            <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-600 bg-slate-100 px-4 py-3 rounded-2xl rounded-tl-none border border-slate-300">
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#3182CE]" />
                               <span className="animate-pulse">
                                 Analyzing Image & Context...
                               </span>
@@ -1042,9 +1044,9 @@ export default function App() {
 
                   {/* Standard Mode Layout (Translation, Dictionary, Sign) */}
                   {activeMode !== "VISION" && (
-                    <div className="flex-1 overflow-y-auto  p-3 sm:p-6 space-y-6 sm:space-y-8 scroll-smooth pb-32 sm:pb-40">
+                    <div className="flex-1 overflow-y-auto  p-3 sm:p-6 space-y-6 sm:space-y-8 scroll-smooth ">
                       <div className="text-center py-6">
-                        <span className="text-[10px] sm:text-xs font-mono text-slate-500 bg-slate-900/80 border border-slate-800 px-4 py-1.5 rounded-full shadow-sm">
+                        <span className="text-[10px] sm:text-xs font-mono text-slate-600 bg-slate-100 border border-slate-300 px-4 py-1.5 rounded-full shadow-sm">
                           {new Date().toLocaleDateString()} •{" "}
                           {activeMode === "DICTIONARY"
                             ? "Dictionary Lookup"
@@ -1074,11 +1076,11 @@ export default function App() {
 
                       {isProcessing && (
                         <div className="flex gap-4 max-w-3xl mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
-                          <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
-                            <Activity className="w-4 h-4 text-indigo-400 animate-pulse" />
+                          <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-400 flex items-center justify-center shrink-0">
+                            <Activity className="w-4 h-4 text-[#3182CE] animate-pulse" />
                           </div>
-                          <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-400 bg-slate-900/50 px-4 py-3 rounded-2xl rounded-tl-none border border-slate-800">
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                          <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-600 bg-slate-100 px-4 py-3 rounded-2xl rounded-tl-none border border-slate-300">
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#3182CE]" />
                             <span className="animate-pulse">
                               {activeMode === "DICTIONARY"
                                 ? "Searching Dictionary..."
@@ -1097,11 +1099,11 @@ export default function App() {
 
               {viewState === "SAVED" && (
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
-                  <h2 className="text-xl font-bold text-yellow-400 flex items-center gap-2 mb-6 px-2">
+                  <h2 className="text-xl font-bold text-yellow-700 flex items-center gap-2 mb-6 px-2">
                     <Bookmark className="w-6 h-6" /> Saved Translations
                   </h2>
                   {savedMessages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 text-slate-500 gap-4">
+                    <div className="flex flex-col items-center justify-center h-64 text-slate-700 gap-4">
                       <Star className="w-12 h-12 opacity-20" />
                       <p>No saved phrases yet.</p>
                     </div>
@@ -1131,7 +1133,7 @@ export default function App() {
 
               {/* Input Area */}
               {viewState === "CHAT" && (
-                <div className="absolute bottom-16 md:bottom-0 left-0 right-0 p-3 sm:p-6 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent z-20">
+                <div className="absolute bottom-20 md:bottom-4 left-0 right-0 p-3 sm:p-6  z-20">
                   <div className="max-w-3xl mx-auto relative">
                     {/* Conditional Language Selectors Popup */}
                     {showLanguageControls && (
