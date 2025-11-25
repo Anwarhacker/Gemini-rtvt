@@ -1,0 +1,18 @@
+{
+  "name": "RTVT Ultimate",
+  "short_name": "RTVT",
+  "description": "Real-time Voice Translation Tool",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/10605/10605978.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
