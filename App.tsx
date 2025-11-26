@@ -29,6 +29,7 @@ import {
   Loader2,
   Library,
   ChevronDown,
+  ChevronUp,
   Plus,
   Smartphone,
   ScanEye,
@@ -82,6 +83,8 @@ export default function App() {
   // For Split View Multi-Language
   const [conversationLangs, setConversationLangs] = useState<Language[]>([
     LANGUAGES[1],
+    LANGUAGES[2],
+    LANGUAGES[3],
   ]);
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -103,6 +106,7 @@ export default function App() {
 
   const [isAddingTranslation, setIsAddingTranslation] = useState(false);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [showInputBar, setShowInputBar] = useState(false);
 
   // Grammar Analysis State
   const [analyzingId, setAnalyzingId] = useState<number | null>(null);
@@ -130,12 +134,14 @@ export default function App() {
   const speechTimeoutRef = useRef<any>(null);
   const voiceBufferRef = useRef("");
 
-  // Sync targetLang with conversationLangs[0] initially
+  // Keep 3 languages in conversation view, with targetLang first
   useEffect(() => {
     setConversationLangs((prev) => {
-      if (prev.length === 0) return [targetLang];
-      const newLangs = [...prev];
-      newLangs[0] = targetLang;
+      const defaultLangs = [LANGUAGES[1], LANGUAGES[2], LANGUAGES[3]];
+      const newLangs = [
+        targetLang,
+        ...defaultLangs.filter((l) => l.code !== targetLang.code),
+      ].slice(0, 3);
       return newLangs;
     });
   }, [targetLang]);
@@ -319,7 +325,10 @@ export default function App() {
   const handleAddConversationLang = async (lang: Language) => {
     setAddingConversationLang(false);
 
-    if (!conversationLangs.find((l) => l.code === lang.code)) {
+    if (
+      !conversationLangs.find((l) => l.code === lang.code) &&
+      conversationLangs.length < 3
+    ) {
       setConversationLangs((prev) => [...prev, lang]);
     }
 
@@ -393,40 +402,39 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const speakText = (
+  const speakText = async (
     text: string,
     langCode: string,
     onEndCallback?: () => void
   ) => {
-    if (!("speechSynthesis" in window) || !text) return;
-    window.speechSynthesis.cancel();
+    if (!text) return;
     setIsSpeaking(true);
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utteranceRef.current = utterance;
-    utterance.lang = langCode;
-    utterance.rate = ttsSpeed;
-
-    const voices = window.speechSynthesis.getVoices();
-    const matchingVoice =
-      voices.find((voice) => voice.lang === langCode) ||
-      voices.find((voice) => voice.lang.includes(langCode.split("-")[0]));
-
-    if (matchingVoice) utterance.voice = matchingVoice;
-
-    utterance.onend = () => {
+    try {
+      const audioBlob = await generateAudio(text);
+      if (audioBlob) {
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          if (onEndCallback) onEndCallback();
+        };
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          if (onEndCallback) onEndCallback();
+        };
+        audio.play();
+      } else {
+        setIsSpeaking(false);
+        if (onEndCallback) onEndCallback();
+      }
+    } catch (e) {
+      console.error("TTS Error:", e);
       setIsSpeaking(false);
-      utteranceRef.current = null;
       if (onEndCallback) onEndCallback();
-    };
-    utterance.onerror = (e) => {
-      if (e.error !== "interrupted" && e.error !== "canceled")
-        console.warn("TTS Error:", e);
-      setIsSpeaking(false);
-      if (onEndCallback) onEndCallback();
-    };
-
-    window.speechSynthesis.speak(utterance);
+    }
   };
 
   const toggleListening = (langOverride: string | null = null) => {
@@ -614,7 +622,7 @@ export default function App() {
           },
         ];
 
-        if (currentMode === "CONVERSATION" && !isReverseTranslate) {
+        if (!isReverseTranslate) {
           const otherLangs = conversationLangs.filter(
             (l) => l.code !== outputLang.code
           );
@@ -659,13 +667,12 @@ export default function App() {
         setMessages((prev) => [...prev, aiMsg]);
 
         if (autoSpeak || isVoiceInput) {
-          speakText(result.translation, outputLang.code, () => {
-            if (isVoiceInput && isListening) {
-              try {
-                recognitionRef.current.start();
-              } catch (e) {}
-            }
-          });
+          await speakText(result.translation, outputLang.code);
+          if (isVoiceInput && isListening) {
+            try {
+              recognitionRef.current.start();
+            } catch (e) {}
+          }
         } else if (isVoiceInput && isListening) {
           try {
             recognitionRef.current.start();
@@ -1131,14 +1138,25 @@ export default function App() {
                 </div>
               )}
 
+              {/* Floating Toggle Button when Input Bar is Hidden */}
+              {viewState === "CHAT" && !showInputBar && (
+                <button
+                  onClick={() => setShowInputBar(true)}
+                  className="fixed bottom-20 md:bottom-4 right-4 p-3 bg-slate-900/90 backdrop-blur-md text-white rounded-full shadow-lg hover:bg-indigo-500 transition-colors z-50"
+                  title="Show Input Bar"
+                >
+                  <ChevronUp className="w-5 h-5" />
+                </button>
+              )}
+
               {/* Input Area */}
-              {viewState === "CHAT" && (
-                <div className="absolute bottom-20 md:bottom-4 left-0 right-0 p-3 sm:p-6  z-20">
+              {viewState === "CHAT" && showInputBar && (
+                <div className="w-full fixed bottom-20 md:bottom-4 p-3 sm:p-6 z-20">
                   <div className="max-w-3xl mx-auto relative">
                     {/* Conditional Language Selectors Popup */}
                     {showLanguageControls && (
-                      <div className="absolute bottom-full left-0 right-0 mb-3 z-30 animate-in fade-in slide-in-from-bottom-2 zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between bg-slate-900/95 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-700/50 max-w-sm mx-auto w-full shadow-2xl ring-1 ring-black/50">
+                      <div className="absolute bottom-full left-0 right-0 z-30  animate-in fade-in slide-in-from-bottom-2 zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between bg-slate-900/95 backdrop-blur-xl p-1.5 rounded-2xl border border-[#3182CE] text-white max-w-sm mx-auto w-full shadow-2xl ring-1 ring-black/50">
                           <button
                             onClick={() => setActiveSelector("source")}
                             className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors min-w-0 group"
@@ -1183,7 +1201,7 @@ export default function App() {
                         {/* Left Icon (Visualizer or Language Toggle) */}
                         <div className="pl-1 sm:pl-2 shrink-0">
                           {isListening ? (
-                            <div className="w-8 h-8 sm:w-10 flex items-center justify-center">
+                            <div className="w-8 h-8 bg-red-700 sm:w-10 flex items-center justify-center">
                               <AudioVisualizer isActive={true} />
                             </div>
                           ) : (
@@ -1233,7 +1251,25 @@ export default function App() {
 
                         {/* Right Actions */}
                         <div className="flex items-center gap-1.5 pr-1 shrink-0">
-                          {activeMode !== "DICTIONARY" && (
+                          <button
+                            onClick={() => setShowInputBar(!showInputBar)}
+                            className={`p-2.5 rounded-xl transition-all ${
+                              showInputBar
+                                ? "text-indigo-300 bg-indigo-500/20 ring-1 ring-indigo-500/30"
+                                : "text-slate-500 hover:text-slate-300 hover:bg-slate-800"
+                            }`}
+                            title={
+                              showInputBar ? "Hide Input Bar" : "Show Input Bar"
+                            }
+                          >
+                            <ChevronDown
+                              className={`w-4 h-4 sm:w-5 sm:h-5 transition-all ${
+                                showInputBar ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+
+                          {/* {activeMode !== "DICTIONARY" && (
                             <button
                               onClick={() =>
                                 setGrammarCorrection(!grammarCorrection)
@@ -1247,7 +1283,7 @@ export default function App() {
                             >
                               <Wand2 className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
-                          )}
+                          )} */}
 
                           <div className="w-px h-6 bg-slate-700/50 mx-1" />
 

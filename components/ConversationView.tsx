@@ -69,13 +69,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
                   </p>
                 </div>
               ))}
-              <button
-                onClick={() => setAddingConversationLang(true)}
-                className="snap-center shrink-0 w-24 h-24 rounded-full border-2 border-dashed border-slate-400 flex flex-col items-center justify-center gap-2 text-slate-600 hover:text-[#3182CE] hover:border-[#3182CE]/50 transition-all"
-              >
-                <Plus className="w-8 h-8" />
-                <span className="text-xs font-medium">Add Lang</span>
-              </button>
+              {conversationLangs.length < 3 && (
+                <button
+                  onClick={() => setAddingConversationLang(true)}
+                  className="snap-center shrink-0 w-24 h-24 rounded-full border-2 border-dashed border-slate-400 flex flex-col items-center justify-center gap-2 text-slate-600 hover:text-[#3182CE] hover:border-[#3182CE]/50 transition-all"
+                >
+                  <Plus className="w-8 h-8" />
+                  <span className="text-xs font-medium">Add Lang</span>
+                </button>
+              )}
             </div>
           ) : (
             <div className="text-center space-y-4 max-w-lg px-4">

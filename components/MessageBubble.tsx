@@ -62,8 +62,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   if (!isSystem) {
     return (
       <div className={`flex gap-2 sm:gap-4 w-full flex-row-reverse`}>
-        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-lg ring-2 ring-offset-2 ring-offset-slate-950 bg-indigo-500 ring-indigo-500/50">
-          {msg.speaker[0]}
+        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs text-white font-bold shrink-0 shadow-lg ring-2 ring-offset-2 ring-white bg-indigo-500 ring-white">
+          U
         </div>
         <div className="flex flex-col items-end max-w-[85%] sm:max-w-[75%]">
           <div className="flex items-center gap-2 mb-1">
@@ -134,8 +134,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   return (
     <div className="flex gap-2 sm:gap-4 w-full flex-row">
-      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-lg ring-2 ring-offset-2 ring-offset-slate-950 bg-purple-500 ring-purple-500/50">
-        {msg.speaker[0]}
+      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs  text-white font-bold shrink-0 shadow-lg ring-2 ring-offset-2 ring-white bg-purple-500 ">
+        R.
       </div>
 
       <div className="flex flex-col items-start w-full overflow-hidden">
