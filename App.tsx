@@ -427,8 +427,19 @@ export default function App() {
         };
         audio.play();
       } else {
-        setIsSpeaking(false);
-        if (onEndCallback) onEndCallback();
+        // Fallback to browser speech synthesis
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = langCode;
+        utterance.rate = ttsSpeed;
+        utterance.onend = () => {
+          setIsSpeaking(false);
+          if (onEndCallback) onEndCallback();
+        };
+        utterance.onerror = () => {
+          setIsSpeaking(false);
+          if (onEndCallback) onEndCallback();
+        };
+        speechSynthesis.speak(utterance);
       }
     } catch (e) {
       console.error("TTS Error:", e);

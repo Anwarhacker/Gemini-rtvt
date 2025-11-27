@@ -165,7 +165,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           onClick={() => toggleListening(sourceLang.code)}
           className={`absolute top-1/2 -translate-y-1/2 right-4 w-16 h-16 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-all shadow-2xl ${
             isListening && listeningLang === sourceLang.code
-              ? "bg-red-500 animate-pulse scale-110 shadow-red-500/50"
+              ? "bg-green-500 animate-pulse scale-110 shadow-red-500/50"
               : "bg-[#3182CE] hover:bg-[#2C7AB0] border border-[#3182CE]/50"
           }`}
         >
