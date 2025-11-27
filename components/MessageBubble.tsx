@@ -73,13 +73,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               </span>
             )}
           </div>
-          <div className="px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-lg backdrop-blur-sm break-words w-full relative group transition-all duration-300 bg-indigo-600/90 text-white rounded-tr-none border border-indigo-500/50">
+          <div className="p-2 rounded-2xl text-sm leading-relaxed shadow-lg backdrop-blur-sm break-words w-[80%]  relative group transition-all duration-300 bg-indigo-600/90 text-white rounded-tr-none border border-indigo-500/50">
             {msg.image && (
               <div className="mb-3 rounded-lg overflow-hidden border border-white/10 shadow-inner bg-black/20">
                 <img
                   src={msg.image}
                   alt="User Upload"
-                  className="w-full h-auto"
+                  className="w-[80%] h-auto"
                 />
               </div>
             )}
@@ -218,7 +218,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </button>
         </div>
 
-        <div className="flex gap-2 mt-1 px-1 opacity-50 hover:opacity-100 transition-opacity">
+        <div className="flex gap-2 mt-1 px-1  opacity-50 hover:opacity-100 transition-opacity">
           <button
             onClick={() => handleToggleSave(msg)}
             className={`p-1 transition-colors ${
@@ -229,13 +229,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             title="Save to Favorites"
           >
             <Star
-              className="w-3.5 h-3.5"
+              className="w-3.5 text-yellow-500 h-3.5"
               fill={isSaved ? "currentColor" : "none"}
             />
           </button>
           <button
             onClick={() => handleDelete(msg.id)}
-            className="text-slate-500 hover:text-red-400 p-1 transition-colors"
+            className="text-red-500 hover:text-red-400 p-1 transition-colors"
             title="Delete"
           >
             <Trash2 className="w-3.5 h-3.5" />

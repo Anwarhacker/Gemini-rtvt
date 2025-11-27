@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { ProcessingResult, DictionaryData } from "../types";
+import { ProcessingResult, DictionaryData, GrammarAnalysis } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -172,22 +172,51 @@ export const translateText = async (text: string, targetLangName: string): Promi
     }
 };
 
-export const explainGrammar = async (text: string): Promise<string> => {
+export const explainGrammar = async (text: string): Promise<GrammarAnalysis> => {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: {
         role: 'user',
-        parts: [{ text: `Analyze the grammatical structure of: "${text}". 
-        
-        Provide a concise breakdown of the Parts of Speech (POS) for key words and briefly explain the sentence structure. 
-        Format the output clearly with bullet points or a simple list.` }]
+        parts: [{ text: `Analyze the grammatical structure of: "${text}".
+
+        First, tokenize the sentence into individual words/phrases.
+        For each word, provide ONE phonetic pronunciation using IPA notation.
+
+        Return JSON with this exact schema:
+        {
+          "sentence": "${text}",
+          "structure": "Brief description of sentence structure (e.g., Subject-Verb-Object, compound sentence, etc.)",
+          "words": [
+            {
+              "word": "individual word or short phrase",
+              "pos": "Part of Speech (Noun, Verb, Adjective, Adverb, Pronoun, Preposition, etc.)",
+              "pronunciation": "Single IPA pronunciation (e.g., /wɜːrd/)",
+              "meaning": "Brief meaning in context"
+            }
+          ]
+        }
+
+        IMPORTANT: Each word entry should have exactly ONE pronunciation, not multiple separated by commas.` }]
+      },
+      config: {
+        responseMimeType: "application/json"
       }
     });
-    return response.text || "Could not analyze grammar.";
+
+    const rawText = response.text;
+    if (!rawText) throw new Error("Empty grammar response");
+
+    const parsed = JSON.parse(rawText) as GrammarAnalysis;
+    return parsed;
+
   } catch (error) {
     console.error("Grammar Analysis Error:", error);
-    return "Analysis unavailable.";
+    return {
+      sentence: text,
+      structure: "Analysis unavailable",
+      words: []
+    };
   }
 };
 

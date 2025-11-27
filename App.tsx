@@ -34,10 +34,17 @@ import {
   Smartphone,
   ScanEye,
   AlertCircle,
+  ImagePlus,
 } from "lucide-react";
 
 import { LANGUAGES, MOCK_CONVERSATION } from "./constants";
-import { Message, DictionaryData, TranslationItem, Language } from "./types";
+import {
+  Message,
+  DictionaryData,
+  TranslationItem,
+  Language,
+  GrammarAnalysis,
+} from "./types";
 import {
   processContent,
   explainGrammar,
@@ -46,7 +53,6 @@ import {
   generateAudio,
 } from "./services/geminiService";
 import { AudioVisualizer } from "./components/AudioVisualizer";
-import { VisionUploader } from "./components/VisionUploader";
 import { LanguageModal } from "./components/LanguageModal";
 import { SettingsDrawer } from "./components/SettingsDrawer";
 import { copyToClipboard, cleanTranscript } from "./utils";
@@ -107,12 +113,13 @@ export default function App() {
   const [isAddingTranslation, setIsAddingTranslation] = useState(false);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [showInputBar, setShowInputBar] = useState(false);
+  const [showVisionUploader, setShowVisionUploader] = useState(false);
 
   // Grammar Analysis State
   const [analyzingId, setAnalyzingId] = useState<number | null>(null);
   const [grammarModalData, setGrammarModalData] = useState<{
     text: string;
-    analysis: string;
+    analysis: GrammarAnalysis;
   } | null>(null);
 
   // Settings
@@ -133,6 +140,7 @@ export default function App() {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speechTimeoutRef = useRef<any>(null);
   const voiceBufferRef = useRef("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Keep 3 languages in conversation view, with targetLang first
   useEffect(() => {
@@ -160,6 +168,26 @@ export default function App() {
         .register("/sw.js")
         .then((registration) => {
           console.log("SW registered: ", registration);
+
+          // Check for updates
+          registration.addEventListener("updatefound", () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener("statechange", () => {
+                if (
+                  newWorker.state === "installed" &&
+                  navigator.serviceWorker.controller
+                ) {
+                  // New update available
+                  if (
+                    confirm("A new version is available. Reload to update?")
+                  ) {
+                    window.location.reload();
+                  }
+                }
+              });
+            }
+          });
         })
         .catch((registrationError) => {
           console.log("SW registration failed: ", registrationError);
@@ -894,7 +922,7 @@ export default function App() {
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 sm:pb-30 flex overflow-hidden relative">
         {/* Desktop Sidebar */}
         <aside className="hidden md:flex w-20 lg:w-64 flex-shrink-0 border-r border-slate-300 bg-white/50 flex-col backdrop-blur-sm">
           <nav className="flex-1 p-3 space-y-2">
@@ -1005,14 +1033,66 @@ export default function App() {
                   {/* Vision Mode Layout - Separate Tab */}
                   {activeMode === "VISION" && (
                     <div className="flex-1 flex flex-col h-full bg-white">
-                      {/* Static Header / Uploader for Vision */}
-                      <div className="w-full bg-slate-100 border-b border-slate-300 z-10 p-4">
-                        <VisionUploader
-                          onImageSelect={setSelectedImage}
-                          selectedImage={selectedImage}
-                          clearImage={() => setSelectedImage(null)}
-                        />
-                      </div>
+                      {/* Uploader for Vision */}
+                      {showVisionUploader && (
+                        <div className="z-20 flex items-center justify-center bg-slate-100 border-b border-slate-300 z-10 p-4">
+                          <div className="mt-4">
+                            {!selectedImage ? (
+                              <div
+                                onClick={() => fileInputRef.current?.click()}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  const files = e.dataTransfer.files;
+                                  if (files && files[0]) {
+                                    setSelectedImage(files[0]);
+                                  }
+                                }}
+                                className="border-2 border-dashed border-slate-700 rounded-2xl bg-slate-900/50 p-8 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-slate-800/50 transition-all group h-64"
+                              >
+                                <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                  <ImagePlus className="w-8 h-8 text-indigo-400" />
+                                </div>
+                                <h3 className="text-lg font-medium text-slate-200">
+                                  Upload Image for Analysis
+                                </h3>
+                                <p className="text-sm text-slate-500 mt-2 text-center max-w-sm">
+                                  Take a photo of a menu, sign, or document to
+                                  translate it instantly using AI Vision.
+                                </p>
+                                <input
+                                  type="file"
+                                  ref={fileInputRef}
+                                  onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                      setSelectedImage(e.target.files[0]);
+                                    }
+                                  }}
+                                  accept="image/*"
+                                  className="hidden"
+                                />
+                              </div>
+                            ) : (
+                              <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-black aspect-video flex items-center justify-center">
+                                <img
+                                  src={URL.createObjectURL(selectedImage)}
+                                  alt="Preview"
+                                  className="max-h-full max-w-full object-contain"
+                                />
+                                <button
+                                  onClick={() => setSelectedImage(null)}
+                                  className="absolute top-4 right-4 p-2 bg-black/60 hover:bg-red-500/80 backdrop-blur rounded-full text-white transition-colors"
+                                >
+                                  <X className="w-5 h-5" />
+                                </button>
+                                <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/60 backdrop-blur rounded-full text-xs text-indigo-300 border border-indigo-500/30">
+                                  Ready to Analyze
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Messages List - Specific to Vision context */}
                       <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-6 sm:space-y-8 scroll-smooth pb-32 sm:pb-40">
@@ -1160,6 +1240,17 @@ export default function App() {
                 </button>
               )}
 
+              {/* Floating Vision Uploader Toggle */}
+              {activeMode === "VISION" && viewState === "CHAT" && (
+                <button
+                  onClick={() => setShowVisionUploader(!showVisionUploader)}
+                  className="fixed top-20 right-4 p-4 bg-slate-900/90 backdrop-blur-md text-white rounded-full shadow-lg hover:bg-indigo-500 transition-colors z-50"
+                  title="Toggle Image Uploader"
+                >
+                  <ImagePlus className="w-4 h-4" />
+                </button>
+              )}
+
               {/* Input Area */}
               {viewState === "CHAT" && showInputBar && (
                 <div className="w-full fixed bottom-20 md:bottom-4 p-3 sm:p-6 z-20">
@@ -1201,11 +1292,11 @@ export default function App() {
                     )}
 
                     {/* Main Input Bar */}
-                    <div className="relative group">
+                    <div className="relative inline flex items-center justify-center w-full h-[64px] sm:h-[80px] group">
                       <div
                         className={`flex items-center gap-2 bg-slate-900/90 backdrop-blur-md p-2 rounded-[20px] border transition-all duration-300 ${
                           isListening
-                            ? "border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.15)] ring-1 ring-red-500/20"
+                            ? "border-red-500/50 mx-auto shadow-[0_0_30px_rgba(239,68,68,0.15)] ring-1 ring-red-500/20"
                             : "border-slate-700 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/50 shadow-xl"
                         }`}
                       >
@@ -1256,7 +1347,7 @@ export default function App() {
                               ? "Listening..."
                               : "type or speak..."
                           }
-                          className="flex-1 bg-transparent border-none focus:ring-0 text-slate-100 placeholder-slate-500 h-10 sm:h-12 text-sm sm:text-base min-w-0 font-medium"
+                          className="flex-1 bg-transparent border border-white/50 px-2 rounded-2xl focus:ring-0 placeholder-white h-10 text-white sm:h-12 text-sm sm:text-base min-w-0 font-medium"
                           disabled={isListening}
                         />
 

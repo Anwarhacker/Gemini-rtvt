@@ -11,6 +11,17 @@ export interface TranslationItem {
   text: string;
 }
 
+export interface GrammarAnalysis {
+  sentence: string;
+  structure: string;
+  words: Array<{
+    word: string;
+    pos: string;
+    pronunciation: string;
+    meaning: string;
+  }>;
+}
+
 export interface DictionaryData {
   type: 'word' | 'sentence';
   source: string;
@@ -34,7 +45,7 @@ export interface Message {
   translation?: string;
   translations?: TranslationItem[];
   originalSource?: string;
-  grammarAnalysis?: string;
+  grammarAnalysis?: GrammarAnalysis;
   mode?: string;
   dictionaryData?: DictionaryData;
 }
