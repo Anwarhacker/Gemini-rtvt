@@ -35,6 +35,7 @@ import {
   ScanEye,
   AlertCircle,
   ImagePlus,
+  RotateCcw,
 } from "lucide-react";
 
 import { LANGUAGES, MOCK_CONVERSATION } from "./constants";
@@ -397,6 +398,12 @@ export default function App() {
   const clearHistory = () => {
     if (confirm("Are you sure you want to clear all chat history?")) {
       setMessages([]);
+    }
+  };
+
+  const clearCurrentMode = () => {
+    if (confirm(`Clear all ${activeMode.toLowerCase()} messages?`)) {
+      setMessages((prev) => prev.filter((m) => m.mode !== activeMode));
     }
   };
 
@@ -1096,10 +1103,17 @@ export default function App() {
 
                       {/* Messages List - Specific to Vision context */}
                       <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-6 sm:space-y-8 scroll-smooth pb-32 sm:pb-40">
-                        <div className="text-center py-4">
+                        <div className="text-center py-4 flex items-center justify-center gap-4">
                           <span className="text-[10px] sm:text-xs font-mono text-slate-700 bg-white border border-slate-300 px-3 py-1 rounded-full shadow-sm">
                             Vision Mode Active
                           </span>
+                          <button
+                            onClick={clearCurrentMode}
+                            className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full transition-colors"
+                            title="Reset Vision Mode"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
                         </div>
 
                         {visibleMessages.map((msg) => (
@@ -1143,13 +1157,22 @@ export default function App() {
                   {/* Standard Mode Layout (Translation, Dictionary, Sign) */}
                   {activeMode !== "VISION" && (
                     <div className="flex-1 overflow-y-auto  p-3 sm:p-6 space-y-6 sm:space-y-8 scroll-smooth ">
-                      <div className="text-center py-6">
+                      <div className="text-center py-6 flex items-center justify-center gap-4">
                         <span className="text-[10px] sm:text-xs font-mono text-slate-600 bg-slate-100 border border-slate-300 px-4 py-1.5 rounded-full shadow-sm">
                           {new Date().toLocaleDateString()} •{" "}
                           {activeMode === "DICTIONARY"
                             ? "Dictionary Lookup"
                             : "Translation Session"}
                         </span>
+                        {activeMode === "DICTIONARY" && (
+                          <button
+                            onClick={clearCurrentMode}
+                            className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full transition-colors"
+                            title="Reset Dictionary Mode"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
 
                       {visibleMessages.map((msg) => (
