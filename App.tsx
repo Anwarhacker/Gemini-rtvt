@@ -116,6 +116,9 @@ export default function App() {
   const [showInputBar, setShowInputBar] = useState(false);
   const [showVisionUploader, setShowVisionUploader] = useState(false);
 
+  // Status Message
+  const [statusMessage, setStatusMessage] = useState("");
+
   // Grammar Analysis State
   const [analyzingId, setAnalyzingId] = useState<number | null>(null);
   const [grammarModalData, setGrammarModalData] = useState<{
@@ -493,6 +496,7 @@ export default function App() {
       recognitionRef.current.stop();
       setIsListening(false);
       setListeningLang(null);
+      setStatusMessage("");
       if (speechTimeoutRef.current) {
         clearTimeout(speechTimeoutRef.current);
         if (voiceBufferRef.current.trim().length > 0) {
@@ -515,6 +519,7 @@ export default function App() {
         recognitionRef.current.lang = langToUse;
         recognitionRef.current.start();
         setIsListening(true);
+        setStatusMessage("Listening...");
       } catch (err) {
         try {
           recognitionRef.current.stop();
@@ -523,6 +528,7 @@ export default function App() {
           try {
             recognitionRef.current.start();
             setIsListening(true);
+            setStatusMessage("Listening...");
           } catch (e) {}
         }, 100);
       }
@@ -597,6 +603,14 @@ export default function App() {
 
     const userMsgId = Date.now();
     const currentMode = activeMode;
+
+    setStatusMessage(
+      currentMode === "DICTIONARY"
+        ? "Searching dictionary..."
+        : currentMode === "VISION"
+        ? "Analyzing image..."
+        : "Translating..."
+    );
 
     const userMsg: Message = {
       id: userMsgId,
@@ -730,6 +744,7 @@ export default function App() {
       setError(e.message || "An unexpected error occurred. Please try again.");
     } finally {
       setIsProcessing(false);
+      setStatusMessage("");
     }
   };
 
@@ -928,6 +943,12 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {statusMessage && (
+        <div className="text-center py-2 text-sm text-slate-600 bg-slate-50 border-b border-slate-200">
+          {statusMessage}
+        </div>
+      )}
 
       <div className="flex-1 sm:pb-30 flex overflow-hidden relative">
         {/* Desktop Sidebar */}
@@ -1164,11 +1185,16 @@ export default function App() {
                             ? "Dictionary Lookup"
                             : "Translation Session"}
                         </span>
-                        {activeMode === "DICTIONARY" && (
+                        {(activeMode === "DICTIONARY" ||
+                          activeMode === "VOICE") && (
                           <button
                             onClick={clearCurrentMode}
                             className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full transition-colors"
-                            title="Reset Dictionary Mode"
+                            title={`Reset ${
+                              activeMode === "DICTIONARY"
+                                ? "Dictionary"
+                                : "Translation"
+                            } Mode`}
                           >
                             <RotateCcw className="w-4 h-4" />
                           </button>
