@@ -73,13 +73,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               </span>
             )}
           </div>
-          <div className="p-2 rounded-2xl text-sm leading-relaxed shadow-lg backdrop-blur-sm break-words w-[80%]  relative group transition-all duration-300 bg-indigo-600/90 text-white rounded-tr-none border border-indigo-500/50">
+          <div className="p-2 rounded-2xl text-sm leading-relaxed shadow-lg backdrop-blur-sm break-words w-full  relative group transition-all duration-300 bg-indigo-600/90 text-white rounded-tr-none border border-indigo-500/50">
             {msg.image && (
-              <div className="mb-3 rounded-lg overflow-hidden border border-white/10 shadow-inner bg-black/20">
+              <div className="mb-3 w-full rounded-lg overflow-hidden border border-white/10 shadow-inner bg-black/20">
                 <img
                   src={msg.image}
                   alt="User Upload"
-                  className="w-[80%] h-auto"
+                  className=" h-auto mx-auto"
                 />
               </div>
             )}

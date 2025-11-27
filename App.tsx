@@ -661,7 +661,7 @@ export default function App() {
           },
         ];
 
-        if (!isReverseTranslate) {
+        if (!isReverseTranslate && currentMode !== "VISION") {
           const otherLangs = conversationLangs.filter(
             (l) => l.code !== outputLang.code
           );
