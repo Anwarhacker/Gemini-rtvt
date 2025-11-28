@@ -130,6 +130,8 @@ export default function App() {
   const [grammarCorrection, setGrammarCorrection] = useState(true);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string>("");
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
   // PWA Install State
@@ -205,7 +207,11 @@ export default function App() {
 
   useEffect(() => {
     const loadVoices = () => {
-      window.speechSynthesis.getVoices();
+      const availableVoices = window.speechSynthesis.getVoices();
+      setVoices(availableVoices);
+      if (availableVoices.length > 0 && !selectedVoice) {
+        setSelectedVoice(availableVoices[0].name);
+      }
     };
     loadVoices();
     window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -469,6 +475,8 @@ export default function App() {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = langCode;
         utterance.rate = ttsSpeed;
+        const voice = voices.find((v) => v.name === selectedVoice);
+        if (voice) utterance.voice = voice;
         utterance.onend = () => {
           setIsSpeaking(false);
           if (onEndCallback) onEndCallback();
@@ -884,6 +892,22 @@ export default function App() {
                   <span>Fast</span>
                 </div>
               </div>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-700">Voice</span>
+                </div>
+                <select
+                  value={selectedVoice}
+                  onChange={(e) => setSelectedVoice(e.target.value)}
+                  className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white"
+                >
+                  {voices.map((voice) => (
+                    <option key={voice.name} value={voice.name}>
+                      {voice.name} ({voice.lang})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -945,7 +969,7 @@ export default function App() {
       </header>
 
       {statusMessage && (
-        <div className="text-center py-2 text-sm text-slate-600 bg-slate-50 border-b border-slate-200">
+        <div className="text-center py-2 bg-green-300 text-sm text-slate-600  border-b border-slate-200">
           {statusMessage}
         </div>
       )}
