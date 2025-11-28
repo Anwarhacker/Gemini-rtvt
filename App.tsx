@@ -307,9 +307,20 @@ export default function App() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }
-    } catch (e: any) {
-      console.error("Download failed", e);
-      setError(e.message || "Failed to generate audio file.");
+    } catch (error: any) {
+      console.error("Download failed", error);
+      if (
+        error?.error?.code === 429 ||
+        error?.code === 429 ||
+        error?.message?.includes("429") ||
+        error?.message?.includes("RESOURCE_EXHAUSTED")
+      ) {
+        setError(
+          "Audio generation quota exceeded. Please upgrade your plan or try again tomorrow."
+        );
+      } else {
+        setError("Failed to generate audio file.");
+      }
     } finally {
       setDownloadingId(null);
     }
@@ -470,27 +481,35 @@ export default function App() {
           if (onEndCallback) onEndCallback();
         };
         audio.play();
-      } else {
-        // Fallback to browser speech synthesis
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = langCode;
-        utterance.rate = ttsSpeed;
-        const voice = voices.find((v) => v.name === selectedVoice);
-        if (voice) utterance.voice = voice;
-        utterance.onend = () => {
-          setIsSpeaking(false);
-          if (onEndCallback) onEndCallback();
-        };
-        utterance.onerror = () => {
-          setIsSpeaking(false);
-          if (onEndCallback) onEndCallback();
-        };
-        speechSynthesis.speak(utterance);
       }
-    } catch (e) {
-      console.error("TTS Error:", e);
-      setIsSpeaking(false);
-      if (onEndCallback) onEndCallback();
+    } catch (error: any) {
+      if (
+        error?.error?.code === 429 ||
+        error?.code === 429 ||
+        error?.message?.includes("429") ||
+        error?.message?.includes("RESOURCE_EXHAUSTED")
+      ) {
+        setError(
+          "Audio generation quota exceeded for the day. Using browser TTS instead."
+        );
+      } else {
+        console.error("TTS Error:", error);
+      }
+      // Fallback to browser speech synthesis
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = langCode;
+      utterance.rate = ttsSpeed;
+      const voice = voices.find((v) => v.name === selectedVoice);
+      if (voice) utterance.voice = voice;
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        if (onEndCallback) onEndCallback();
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        if (onEndCallback) onEndCallback();
+      };
+      speechSynthesis.speak(utterance);
     }
   };
 

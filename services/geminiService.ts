@@ -78,7 +78,7 @@ export const generateAudio = async (text: string): Promise<Blob> => {
 
     } catch (error) {
         console.error("Audio Generation Error:", error);
-        return null;
+        throw error;
     }
 };
 
